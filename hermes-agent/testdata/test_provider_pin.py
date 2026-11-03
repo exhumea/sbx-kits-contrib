@@ -19,7 +19,9 @@ import unittest
 HOOK = Path(os.environ.get(
     "HERMES_AUTH_SCRIPT",
     Path(__file__).resolve().parent.parent / "files/home/.local/bin/hermes-credential-auth.sh"))
-OAUTH_SENTINEL = "sk-ant-oat01-proxy-managed"
+# The script only greps this placeholder out of the login file, so the file
+# body is just a marker line.
+LOGIN_MARKER = "sk-ant-oat01-proxy-managed"
 PRISTINE = ("auto", "anthropic/claude-opus-4.6")
 ANTHROPIC = ("anthropic", "claude-opus-4-6")
 OPENAI = ("openai-api", "gpt-6-sol")
@@ -81,8 +83,7 @@ def run_case(bound, preset, hook=HOOK):
                 env[f"SBX_CRED_{service}_MODE"] = "apikey"
         if "A" in bound:
             (home / ".claude").mkdir()
-            (home / ".claude/.credentials.json").write_text(
-                '{"claudeAiOauth":{"accessToken":"%s"}}' % OAUTH_SENTINEL)
+            (home / ".claude/.credentials.json").write_text(f"login={LOGIN_MARKER}\n")
         done = subprocess.run(["sh", str(hook)], env=env, capture_output=True, text=True)
         values = dict(line.split("=", 1) for line in
                       (home / "stub-config").read_text().splitlines() if "=" in line)
