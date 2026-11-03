@@ -136,6 +136,13 @@ docker run --rm -v "$PWD/hermes-agent:/kit:ro" --tmpfs /decoy/persistent \
   python:3.12-slim python -m unittest /kit/testdata/test_volume_paths.py
 ```
 
+The provider pin in `hermes-credential-auth.sh` has a test that needs no
+container; run it from the repo root:
+
+```console
+python3 -m unittest hermes-agent/testdata/test_provider_pin.py
+```
+
 ## How auth works
 
 Each entry in the kit's `credentials:` list maps a provider to a domain and the
