@@ -47,8 +47,7 @@ version: "${{ kit.args.version }}"
 #
 # HOW THE DEFAULT WAS ESTABLISHED, and how to bump it: the `latest` dist-tag
 # published for OpenCode, read from
-# https://registry.npmjs.org/@opencode%2fcli/latest. 2.0.29 at the time of
-# writing.
+# <https://registry.npmjs.org/@opencode%2fcli/latest>.
 #
 # WHY PINNED rather than left floating: an unversioned provide takes the
 # descriptor's `version:` as its version at resolution, so `provides:
@@ -64,10 +63,13 @@ version: "${{ kit.args.version }}"
 # should claim.
 args:
   version:
-    default: "2.0.29"
+    default: "2.2.7" # cf. <https://github.com/anomalyco/opencode/releases>
     pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
     description: OpenCode release to install
     buildArg: OPENCODE_VERSION
+  model:
+    default: "opencode/deepseek-v4.1-flash-free"
+    description: OpenCode default model
 
 provides: ["opencode@${{ kit.args.version }}"]
 
@@ -76,6 +78,16 @@ capabilities:
   # running the image's entrypoint as PID 1, and honors the identity the image
   # config declares instead of assuming one.
   - type: com.docker.sandbox/sbx@1
+
+  # Automatic port forwarding to host is pretty useless because:
+  # - we can NOT automatically configure host to listen on 0.0.0.0
+  # - the random port pn host changes at each sandbox restart
+  #   (unlike with manual port publishing or sbxenv.yaml)
+  #- type: com.docker.sandbox/port@1
+  #  config:
+  #    name: opencode
+  #    container: 4123
+  #    transport: tcp
 
   - type: com.docker.sandbox/network-policy@1
     # Without this block OpenCode has zero allowed domains under a restrictive
@@ -354,7 +366,7 @@ capabilities:
         # and a slow apt-get then times out the exec. v3 has `background: true`
         # for exactly this, and the engine owns the detach, so the shell trick
         # and the fd plumbing it needed both go away.
-        - command: [sh, -c, "command -v apt-get > /dev/null 2>&1 && (apt-get update -qq -y > /dev/null 2>&1 || true)"]
+        - command: [sh, -c, "command -v apt-get > /dev/null 2>&1 && (apt-get update -qq -y > /dev/null 2>&1 || true) && command -v apt-file > /dev/null 2>&1 && (apt-file update > /dev/null 2>&1 || true)"]
           user: "0"
           background: true
           description: Update apt package cache in background
@@ -364,7 +376,7 @@ capabilities:
         # not a credential -- the proxy substitutes the real token at request
         # time keyed by this name. No-op when MCP isn't enabled.
         #
-        # OpenCode owns ~/.config/opencode/opencode.json outright (there are no
+        # OpenCode owns /etc/opencode/opencode.json outright (there are no
         # baseline keys to preserve), so the file is written fresh rather than
         # merged. The heredoc is unquoted so the two environment variables
         # expand, which is why `$schema` is backslash-escaped: unescaped it
@@ -384,10 +396,11 @@ capabilities:
             - |
               set -e
               [ -n "$MCP_GATEWAY_URL" ] || exit 0
-              mkdir -p "$HOME/.config/opencode"
-              cat > "$HOME/.config/opencode/opencode.json" <<EOF
+              sudo mkdir -p /etc/opencode
+              sudo tee /etc/opencode/opencode.json >/dev/null <<EOF
               {
                 "\$schema": "https://opencode.ai/config.json",
+                "model": "${{ kit.args.model }}",
                 "mcp": {
                   "mcp-gateway": {
                     "type": "remote",
@@ -402,7 +415,7 @@ capabilities:
               EOF
           user: "agent"
           env: [MCP_GATEWAY_URL, MCP_SENTINEL_TOKEN_NAME]
-          description: Register the sandbox MCP gateway in ~/.config/opencode/opencode.json
+          description: Register the sandbox MCP gateway in /etc/opencode/opencode.json
 
         # The startup bridge imports auth.json's `refresh` value into OpenCode
         # v2's github-copilot credential, whose plugin sends it as the Copilot
