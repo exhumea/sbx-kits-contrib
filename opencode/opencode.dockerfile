@@ -20,6 +20,59 @@ FROM ${BASE_IMAGE}
 # build arg, visible only to FROM lines. Without this, the LABEL below would
 # expand to an empty string.
 ARG BASE_IMAGE
+ARG LANG=C.UTF8
+
+USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF8
+
+RUN apt update -qq -y && apt upgrade -y
+
+# Base utils
+RUN apt install -y --no-install-recommends \
+  bash-completion apt-file lsb-release locales unicode-data file \
+  ltrace strace nano ripgrep tree fd-find psmisc procps \
+  jq zip unzip lrzip 7zip lzma bzip2 shfmt mdformat \
+  iputils-ping iproute2 ncat nginx valkey-server valkey-tools \
+  sqlite3 sqlite3-tools golang python-is-python3 pipx
+RUN locale-gen
+
+# Documents (esp. for Anthropic document skills)
+RUN apt install -y libreoffice-nogui poppler-utils pdfgrep pdf2svg \
+  pandoc imagemagick libtiff-tools librsvg2-bin ffmpeg \
+  xlsx2csv libxlsxwriter-dev docx2txt xmlstarlet libxml2-dev libxml2-utils tidy
+
+# Data-science
+RUN apt install -y python3-numpy python3-sklearn-lib python3-statsmodels-lib \
+  parquet-tools arrow-tools avro-bin csvkit miller graphviz
+
+# GIS
+# RUN apt install -y geotiff-bin libraw-bin hdf4-tools grass-core libgdal-grass gdal-bin \
+#   qgis qgis-plugin-grass
+
+RUN rm -rf /var/lib/apt/lists/* && rm -rf /var/lib/apt/archives
+
+# System config files
+COPY files/etc/ /etc/
+
+USER agent
+
+# Agent config files (chown must be explicit)
+COPY --chown=agent:agent files/home/ /home/agent/
+
+# Avoid aliases and PS1 conflicts
+RUN sed -i -E 's/^(alias ls|PS1)=/#\1=/g' /home/agent/.bashrc
+
+# Beware: there is also a system-level uv install
+RUN pipx ensurepath
+RUN pipx install uv
+RUN uv tool install yq
+RUN uv tool install mitmproxy --with mitmcloak && "$(uv tool dir)"/mitmproxy/bin/python -m mitmcloak install
+
+# Minor fix to be able to perform 'npm ls -g' before installing any lib with npm
+RUN mkdir -p "$NPM_CONFIG_PREFIX"/lib
+RUN npm config set fund false
 
 # The kit's `version` arg arriving as a build arg -- opencode.yaml declares it
 # with `buildArg: OPENCODE_VERSION`, validates its shape, and expands the same
@@ -29,6 +82,8 @@ ARG BASE_IMAGE
 # `--build-arg version=1.2.3` (npm semver, no leading "v"), which moves the
 # install and the provide together.
 ARG OPENCODE_VERSION
+
+ARG OPENCODE_PORT=4123
 
 # The official v2 installer downloads and extracts the platform binary directly
 # from the npm registry. It selects the architecture, libc and x86 AVX2 variant
@@ -55,6 +110,13 @@ rm -f /tmp/opencode-install
 
 opencode --version
 EOF
+
+# Make the opencode service accessible from outside the microVM
+RUN opencode service set hostname 0.0.0.0
+RUN opencode service set port "${OPENCODE_PORT}"
+
+# Add autocompletion for opencode
+RUN opencode --completions bash | sudo tee /etc/bash_completion.d/opencode
 
 # Inherited from the base image, but re-declared deliberately so the value is
 # owned here rather than depending on inheritance from an image this repository
