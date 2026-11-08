@@ -8,11 +8,11 @@ kind: mixin
 # The kit's own version, not the version of anything it installs: it is the
 # tag this kit publishes under, and the fallback that versions an unversioned
 # provide at publish. Bump it when this kit's declarations change.
-version: "1.1.0"
+version: "1.1.1"
 
 # A name other kits can order themselves against. Nothing is provided
 # implicitly (SPEC-v3 §5), and the only thing here worth naming is the
-# effect: once this kit's install hook has run, ~/.ssh/known_hosts carries
+# effect: once this kit's install hook has run, /etc/ssh/ssh_known_hosts carries
 # GitHub's host keys. github-clone declares `integrates: ["github-ssh"]` so
 # that, when both are composed, this hook runs first and an SSH clone never
 # races the host-key setup.
@@ -34,7 +34,7 @@ provides: ["github-ssh"]
 #                      this was an unstated assumption the v2 hook inherited
 #                      from its base image; it is stated now rather than
 #                      quietly changed.
-#   deb/openssh-client ~/.ssh/known_hosts is OpenSSH's file, at OpenSSH's path.
+#   deb/openssh-client /etc/ssh/ssh_known_hosts is OpenSSH's file, at OpenSSH's path.
 #                      Writing it on a base with no ssh client leaves the kit
 #                      silently inert — the host keys are pinned and nothing
 #                      ever reads them — which is worse than refusing to
@@ -79,14 +79,10 @@ capabilities:
         # The `jq` it assumes is declared in `requires:` above rather than
         # left to the base, which is the one thing v2 had no way to say.
         - command: |
-            mkdir -p /home/agent/.ssh
-            chmod 700 /home/agent/.ssh
-            chown agent:agent /home/agent/.ssh
             curl -s https://api.github.com/meta \
               | jq -r '.ssh_keys[] | "github.com " + .' \
-              >> /home/agent/.ssh/known_hosts
-            chmod 644 /home/agent/.ssh/known_hosts
-            chown agent:agent /home/agent/.ssh/known_hosts
+              | tee -a /etc/ssh/ssh_known_hosts
+            chmod 644 /etc/ssh/ssh_known_hosts
           user: "0"
           description: Fetch and install GitHub host keys from api.github.com/meta
 

@@ -1,16 +1,16 @@
 # syntax=docker/sandbox-kit:3
 schemaVersion: "3"
 displayName: GitLab SSH
-description: Appends a GitLab instance's SSH host keys to ~/.ssh/known_hosts so git clone/push/pull over SSH work without interactive host verification. GitLab.com's keys are pinned; a self-managed instance's key is supplied with the hostKey argument. Writes no private key material and touches nothing else under ~/.ssh.
+description: Appends a GitLab instance's SSH host keys to /etc/ssh/ssh_known_hosts so git clone/push/pull over SSH work without interactive host verification. GitLab.com's keys are pinned; a self-managed instance's key is supplied with the hostKey argument. Writes no private key material and touches nothing else under /etc/ssh/.
 
 kind: mixin
 
 # The kit's own version, not the version of anything it installs: it is the
 # tag this kit publishes under, and the fallback that versions an unversioned
 # provide at publish. Bump it when this kit's declarations change.
-version: "1.0.1"
+version: "1.0.2"
 
-# ~/.ssh/known_hosts is OpenSSH's file, in OpenSSH's format, at OpenSSH's path,
+# /etc/ssh/ssh_known_hosts is OpenSSH's file, in OpenSSH's format, at OpenSSH's path,
 # and this kit's entire output is that file. §12's floor promises git and curl
 # and stops short of ssh, so on a base without a client the host keys are
 # pinned and nothing ever reads them — the kit installs cleanly and does
@@ -116,12 +116,8 @@ capabilities:
               exit 1
             fi
 
-            mkdir -p /home/agent/.ssh
-            chmod 700 /home/agent/.ssh
-            chown agent:agent /home/agent/.ssh
-            printf '%s\n' "$KEYS" >> /home/agent/.ssh/known_hosts
-            chmod 644 /home/agent/.ssh/known_hosts
-            chown agent:agent /home/agent/.ssh/known_hosts
+            printf '%s\n' "$KEYS" | tee -a /etc/ssh/ssh_known_hosts
+            chmod 644 /etc/ssh/ssh_known_hosts
           user: "0"
           description: Pin the target instance's SSH host keys into known_hosts
 
@@ -139,7 +135,7 @@ capabilities:
         ## GitLab SSH authentication
 
         ${{ kit.args.host }}'s SSH host keys are pre-populated in
-        `~/.ssh/known_hosts`, so SSH operations to GitLab (clone, push, pull)
+        `/etc/ssh/ssh_known_hosts`, so SSH operations to GitLab (clone, push, pull)
         work without interactive host verification prompts. Use
         `git@${{ kit.args.host }}:group/project.git` remotes — the sandbox proxy
         does not rewrite git-over-HTTPS Basic auth for GitLab (see the `gitlab`

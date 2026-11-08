@@ -6,7 +6,7 @@
 # gitlab-ssh
 
 A mixin that appends a GitLab instance's SSH host keys to
-`~/.ssh/known_hosts` so SSH operations to GitLab work without interactive
+`/etc/ssh/ssh_known_hosts` so SSH operations to GitLab work without interactive
 host verification prompts.
 
 Without this kit, SSH connections from a sandbox to GitLab fail because
@@ -132,7 +132,7 @@ git push origin my-branch
 ## How it works
 
 At install time, the kit appends the target instance's SSH host keys to
-`/home/agent/.ssh/known_hosts`. For gitlab.com these are GitLab's published
+`/etc/ssh/ssh_known_hosts`. For gitlab.com these are GitLab's published
 keys (ED25519, RSA, ECDSA — from
 [GitLab's SSH host keys fingerprints doc](https://docs.gitlab.com/user/gitlab_com/#ssh-host-keys)),
 pinned directly in `gitlab-ssh.yaml` because GitLab, unlike GitHub, publishes no
