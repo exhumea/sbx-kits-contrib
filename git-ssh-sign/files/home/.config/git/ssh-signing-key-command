@@ -144,6 +144,10 @@ if [ "$is_github" = "1" ] && command -v gh >/dev/null 2>&1; then
             { if (($1 " " $2) in seen) { print; exit } }
         ')
         if [ -n "$matched" ]; then
+			if [ "$(echo "$matched" | grep -c . || true)" -gt 1 ]; then
+				fail "too many Github signing keys matching" \
+				"You should set SSH_AUTH_SOCK to a restricted ssh-agent"
+			fi
             key="$matched"
         else
             # Git discards this: it only echoes the key command's stderr when
@@ -153,6 +157,9 @@ if [ "$is_github" = "1" ] && command -v gh >/dev/null 2>&1; then
             printf '[git-ssh-sign] none of the SSH agent keys are registered on GitHub as a signing key - commits will sign but show Unverified there. Add one at https://github.com/settings/ssh/new?type=signing\n' >&2
         fi
     fi
+elif [ "$(echo "$out" | grep -c . || true)" -gt 1 ]; then
+	fail "Too many signing keys available" \
+	"You should set SSH_AUTH_SOCK to a restricted ssh-agent"
 fi
 
 email=$(git config user.email 2>/dev/null || printf '%s' "agent@sandbox.local")

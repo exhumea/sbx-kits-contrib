@@ -10,6 +10,16 @@ kind: mixin
 # provide at publish. Bump it when this kit's declarations change.
 version: "1.0.2"
 
+args:
+  gitName:
+    required: true
+    pattern: '^[\x21-\x7E](?:[\x20-\x7E]*[\x21-\x7E])?$' # printable ASCII characters or space (but not at start nor end)
+    description: "User name for Git commits"
+  gitEmail:
+    required: true
+    pattern: '^[^@]+@[^@]+\.[^@]+$'
+    description: "User email for Git commits"
+
 # OpenSSH is the whole mechanism here, on both ends of it: the shipped
 # ssh-signing-key-command runs `ssh-add -L` against the forwarded agent, and
 # the `gpg.format ssh` the hook configures makes git sign by shelling out to
@@ -35,8 +45,8 @@ capabilities:
   # author, and GitHub shows a signature as Verified only when the committer
   # email belongs to the account that registered the signing key.
   # Optional so that a host with no git identity configured still starts.
-  - type: com.docker.sandbox/git-identity@1
-    optional: true
+  #- type: com.docker.sandbox/git-identity@1
+  #  optional: true
   - type: com.docker.sandbox/ssh-agent@1
     config:
       phase: runtime
@@ -68,6 +78,10 @@ capabilities:
         # migration is for.
         - command: |
             set -e
+
+            # Configurable identity
+            git config --system user.name "${{ kit.args.gitName }}"
+            git config --system user.email "${{ kit.args.gitEmail }}"
 
             # Signing *machinery* stays machine-wide: it is inert unless something
             # asks for a signature, and keeping it here means `git commit -S` works
