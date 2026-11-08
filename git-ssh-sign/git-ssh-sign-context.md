@@ -4,17 +4,7 @@ This sandbox signs git commits with your host's SSH key, forwarded over
 the sandbox's SSH agent relay. Use `git log --show-signature` to verify
 signatures on existing commits.
 
-A host agent often forwards more than one key. When the repository's
-remote is on github.com and the `gh` CLI is authenticated, the agent's
-keys are cross-checked against the signing keys registered on the
-committer's GitHub account, so the commit shows as Verified there and
-not only locally. On any other host, or without `gh`, the first key the
-agent offers is used.
-
-If no agent key is registered there, the commit still signs but shows
-Unverified on GitHub. Git hides that warning because it only surfaces
-the key command's stderr when the command fails; run
-`/bin/sh ~/.config/git/ssh-signing-key-command` directly to see it.
+The signing key to be used is hardcoded with `gitSshSigningKey` kit arg.
 
 Automatic signing is scoped to repositories that **have at least one
 remote**. A repository is exempt only for as long as it has no remote:
@@ -29,17 +19,6 @@ exempt — if `git init` fixtures are failing to commit, check
 paragraph above.
 
 ### When signing fails
-
-The key is resolved at signing time from the forwarded agent, so a
-signing failure almost always means the agent is unreachable or holds
-no usable key, not that a config value is missing. Git reports it as:
-
-    warning: gpg.ssh.defaultKeyCommand failed: [git-ssh-sign] ...
-    error: user.signingKey needs to be set for ssh signing
-
-**Ignore the `user.signingKey` line** — this kit deliberately leaves
-`user.signingKey` unset. Read the `[git-ssh-sign]` lines above it; they
-name the actual state and the recovery.
 
 Diagnose in this order:
 
