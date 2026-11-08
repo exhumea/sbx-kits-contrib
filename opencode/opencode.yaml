@@ -184,6 +184,10 @@ capabilities:
           - ports.ubuntu.com          # Ubuntu archive/security (arm64)
           - download.docker.com       # Docker's apt repo, pre-added by shell-docker
           - cli.github.com            # GitHub CLI apt repo, pre-added by the base
+          # needed for secrets
+          - lbrouter.com
+          - tokenharbor.ai
+          - api.freepi.ai
 
   # Seven provider services, every one of them `optional: true`. That is
   # deliberate and uniform: OpenCode is usable with a locally served model and
@@ -356,6 +360,56 @@ capabilities:
         proxyManaged: true
         inject:
           - {domain: api.x.ai, header: Authorization, format: Bearer %s}
+
+  # Not activated since OpenCode server checks TLS fingerprint, which is different between official client and sbx proxy
+  # TODO: use httpcloak with recorded TLS fingerprint preset to proxy requests nonetheless
+  #- type: com.docker.sandbox/credential@1
+  #  optional: true
+  #  description: OpenCode API access
+  #  config:
+  #    service: opencode
+  #    phase: runtime
+  #    apiKey:
+  #      name: OPENCODE_API_KEY
+  #      proxyManaged: true
+  #      inject:
+  #        - {domain: opencode.ai, header: Authorization, format: Bearer %s}
+
+  - type: com.docker.sandbox/credential@1
+    optional: true
+    description: lbrouter API access
+    config:
+      service: lbrouter
+      phase: runtime
+      apiKey:
+        name: LBROUTER_API_KEY
+        proxyManaged: true
+        inject:
+          - {domain: lbrouter.com, header: Authorization, format: Bearer %s}
+
+  - type: com.docker.sandbox/credential@1
+    optional: true
+    description: TokenHarbor API access
+    config:
+      service: tokenharbor
+      phase: runtime
+      apiKey:
+        name: TOKENHARBOR_API_KEY
+        proxyManaged: true
+        inject:
+          - {domain: tokenharbor.ai, header: Authorization, format: Bearer %s}
+
+  - type: com.docker.sandbox/credential@1
+    optional: true
+    description: free-pi API access
+    config:
+      service: freepi
+      phase: runtime
+      apiKey:
+        name: FREEPI_TOKEN
+        proxyManaged: true
+        inject:
+          - {domain: api.freepi.ai, header: Authorization, format: Bearer %s}
 
   - type: com.docker.sandbox/lifecycle@1
     config:
