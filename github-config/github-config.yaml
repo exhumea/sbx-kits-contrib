@@ -1,0 +1,53 @@
+# syntax=docker/sandbox-kit:3
+schemaVersion: "3"
+displayName: GitHub Config
+description: Configure sandbox for GitHub interactions.
+
+kind: mixin
+
+# The kit's own version, not the version of anything it installs: it is the
+# tag this kit publishes under, and the fallback that versions an unversioned
+# provide at publish. Bump it when this kit's declarations change.
+version: "1.0.0"
+
+# An SSH clone (`repo=git@github.com:owner/name.git`) needs GitHub's host
+# keys in /etc/ssh/ssh_known_hosts, which the github-ssh kit writes from its own
+# install hook. `integrates` rather than `requires`, because plenty of
+# compositions clone over HTTPS and never layer github-ssh: an absent
+# provider is simply ignored, whereas `requires` would refuse to compose
+# without it (SPEC-v3 §5.3). When github-ssh is present it is ordered
+# before this kit, as with `requires`, so the clone hook below never runs
+# ahead of the host-key setup.
+#
+# Unconstrained: github-ssh's provide is unversioned, and an unversioned
+# provide satisfies only an unconstrained entry (§5.2).
+integrates: ["github-ssh"]
+
+requires: ["deb/gh"]
+
+capabilities:
+  - type: com.docker.sandbox/lifecycle@1
+    config:
+      startup:
+        - command: [/etc/ssh/configure_github_auth_key.sh]
+          user: "0"
+          env: [GH_TOKEN, SSH_AUTH_SOCK, SANDBOX_NAME]
+          description: Configure auth for Github repos cloned via SSH
+      install:
+        - command: |
+            set -euo pipefail
+
+            # Route git HTTPS auth for github.com through gh's credential
+            # helper so any later `git push` / `git pull` from within the
+            # sandbox picks up the same proxy-managed GH_TOKEN sentinel.
+            # Written to /etc/gitconfig with `--system` so any user in the
+            # container inherits it — equivalent to running `gh auth
+            # setup-git` per-user, but keeps this hook root-scoped and works
+            # even when no GitHub credential is bound on the host (the empty
+            # first helper resets whatever the base image may have set; the
+            # two-line pattern is what gh's own setup-git writes).
+            git config --system --unset-all credential."https://github.com".helper 2>/dev/null || true
+            git config --system --add       credential."https://github.com".helper ''
+            git config --system --add       credential."https://github.com".helper '!gh auth git-credential'
+          user: "0"
+          description: Configure auth for Github repos cloned via HTTPS
