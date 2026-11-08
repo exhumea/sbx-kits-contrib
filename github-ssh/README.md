@@ -5,7 +5,7 @@
 
 # github-ssh
 
-A mixin that pre-populates `~/.ssh/known_hosts` with GitHub's host keys so
+A mixin that pre-populates `/etc/ssh/ssh_known_hosts` with GitHub's host keys so
 SSH operations to GitHub work without interactive host verification prompts.
 
 Without this kit, SSH connections from a sandbox to GitHub fail because there
@@ -53,6 +53,6 @@ sbx run \
 At install time, the kit fetches GitHub's current SSH host keys from
 [`https://api.github.com/meta`](https://api.github.com/meta) (the canonical
 source GitHub publishes) and appends them to
-`/home/agent/.ssh/known_hosts`. Using the HTTPS metadata endpoint works
+`/etc/ssh/ssh_known_hosts`. Using the HTTPS metadata endpoint works
 through HTTPS-only proxies where `ssh-keyscan` cannot reach port 22, and
 avoids hardcoding keys that GitHub may rotate.
