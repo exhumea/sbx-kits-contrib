@@ -65,9 +65,9 @@ RUN set -eu; \
     [ -n "${GLAB_VERSION}" ] || { echo "GLAB_VERSION must be set" >&2; exit 1; }; \
     case "${TARGETARCH}" in \
       amd64) \
-        sha256=f3782ddb62b6ab20d0031699ea7b43f345dc6f63e991883660e21343b9524931 ;; \
+        sha256=ce06313b2075af25180cd195ab3496d42bc5857c85a1c12ba996838dfe9d822c ;; \
       arm64) \
-        sha256=0f6171766dd7f8246b7ce85bab18bd99d57ce2538e0ec9121c48fe004308eac4 ;; \
+        sha256=062d53acb0f2cbcc79a014600df1aa0fb440bb3a08a5d4900d3b49b553b22767 ;; \
       *) echo "unsupported TARGETARCH: ${TARGETARCH} (expected amd64 or arm64)" >&2; exit 1 ;; \
     esac; \
     tarball="glab_${GLAB_VERSION}_linux_${TARGETARCH}.tar.gz"; \
