@@ -42,6 +42,8 @@ FROM ${BASE_IMAGE} AS build
 # both digests here, together -- with the checksums from the release's
 # checksums.txt.
 ARG GLAB_VERSION
+ARG GLAB_SHA256_AMD64_TGZ
+ARG GLAB_SHA256_ARM64_TGZ
 ARG TARGETARCH
 
 USER root
@@ -65,9 +67,9 @@ RUN set -eu; \
     [ -n "${GLAB_VERSION}" ] || { echo "GLAB_VERSION must be set" >&2; exit 1; }; \
     case "${TARGETARCH}" in \
       amd64) \
-        sha256=f3782ddb62b6ab20d0031699ea7b43f345dc6f63e991883660e21343b9524931 ;; \
+        sha256="${GLAB_SHA256_AMD64_TGZ}" ;; \
       arm64) \
-        sha256=0f6171766dd7f8246b7ce85bab18bd99d57ce2538e0ec9121c48fe004308eac4 ;; \
+        sha256="${GLAB_SHA256_ARM64_TGZ}" ;; \
       *) echo "unsupported TARGETARCH: ${TARGETARCH} (expected amd64 or arm64)" >&2; exit 1 ;; \
     esac; \
     tarball="glab_${GLAB_VERSION}_linux_${TARGETARCH}.tar.gz"; \
