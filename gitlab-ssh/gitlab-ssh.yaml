@@ -116,6 +116,14 @@ capabilities:
               exit 1
             fi
 
+            # Most custom Gitlab instances are IPv4 only
+            if [ "$HOST" != "gitlab.com" ]; then
+              cat >/etc/ssh/ssh_config.d/99-gitlab.conf <<'EOF'
+              Host ${{ kit.args.host }}
+                AddressFamily inet
+            EOF
+            fi
+
             printf '%s\n' "$KEYS" | tee -a /etc/ssh/ssh_known_hosts
             chmod 644 /etc/ssh/ssh_known_hosts
           user: "0"

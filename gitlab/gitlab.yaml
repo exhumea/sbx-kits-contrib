@@ -50,6 +50,12 @@ args:
     # back to "gitlab.com, or the authenticated host in the current Git
     # directory", which can target a host the proxy injects nothing for.
     env: GITLAB_HOST
+  sshHost:
+    default: ""
+    description: "Custom SSH host (optional)"
+  containerRegistryDomains:
+    default: ""
+    description: "Custom container registry domains (optional)"
   service:
     default: "gitlab"
     description: "Credential service name to bind with `sbx secret set`. Give a self-managed sandbox its own name (e.g. gitlab-acme) so it can hold a different PAT from a gitlab.com sandbox."
@@ -215,19 +221,34 @@ capabilities:
         # the edited config the guard exists to protect; and it writes under
         # /home/agent, which on the composed base may be a mounted volume
         # that covers whatever an overlay put there.
+
+        # glab config ref: <https://docs.gitlab.com/cli/config/>
         - command: |
             set -euo pipefail
             CFG=/home/agent/.config/glab-cli/config.yml
             # install re-runs on recreate: never clobber a config the user has
             # since edited (or that `glab auth login` has written into).
             if [ ! -f "$CFG" ]; then
+              ssh_host="${{ kit.args.sshHost }}"
+              [ -n "$ssh_host" ] && ssh_host="ssh_host: $ssh_host"
+              container_registry_domains="${{ kit.args.containerRegistryDomains }}"
+              [ -n "$container_registry_domains" ] && container_registry_domains="container_registry_domains: $container_registry_domains"
               install -d -m 0700 -o agent -g agent /home/agent/.config/glab-cli
-              cat > "$CFG" <<'EOF'
+              cat > "$CFG" <<EOF
+            telemetry: false
+            duo_cli_auto_download: false
+            duo_cli_auto_run: false
+            orbit_cli_auto_download: false
+            orbit_cli_auto_run: false
+            show_whats_new: false
+            check_update: true
+            git_protocol: ssh
             hosts:
               ${{ kit.args.host }}:
                 api_host: ${{ kit.args.host }}
                 api_protocol: https
-                git_protocol: ssh
+                $container_registry_domains
+                $ssh_host
             EOF
               chmod 600 "$CFG"
               chown agent:agent "$CFG"
